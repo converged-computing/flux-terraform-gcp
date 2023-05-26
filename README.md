@@ -37,11 +37,15 @@ be changed directly or over-ridden in the Makefile with `-var name=value`.
 A nicer design would be to have one common node built for all purposes,
 but for now I'm mimicking the design [here](https://github.com/GoogleCloudPlatform/scientific-computing-examples/tree/main/fluxfw-gcp/img).
 
+#### Advanced
+
+This isn't added, but there is a snippet we can add to [enable GPUs](build-images/config_gpus.txt) if interested.
+I'd also like to refactor to build one image, or get logic from shared scripts to reduce redundancy, but this isn't a hill I need
+to die on right now! XD
+
 ### Deploy with Terraform
 
-**under development** and not added yet
-
-Once you have images, choose a directory under **examples** to deploy from:
+Once you have images, choose a directory under [examples](examples) to deploy from:
 
 ```bash
 $ cd examples/basic
