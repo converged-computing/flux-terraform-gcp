@@ -12,6 +12,13 @@ Initialize the deployment with the command:
 $ terraform init
 ```
 
+I find it's easiest to export my Google project in the environment for any terraform configs
+that mysteriously need it.
+
+```bash
+export GOOGLE_PROJECT=$(gcloud config get-value core/project)
+```
+
 You'll want to inspect basic.tfvars and change for your use case. Then:
 
 ```bash
@@ -27,15 +34,26 @@ Verify that the cluster is up:
 gcloud compute ssh gffw-login-001 --zone us-central1-a
 ```
 
-Note that the above working has some (not merged yet) fixed for the upstream recipe.
-Stay tuned! When you are finished destroy the cluster:
+And then you should be able to interact with Flux!
 
 ```bash
-terraform destroy -var-file basic.tfvars \
-  -var region=us-central1 \
-  -var project_id=$(gcloud config get-value core/project) \
-  -var network_name=foundation-net \
-  -var zone=us-central1-a
+$ flux resource list
+     STATE PROPERTIES NNODES   NCORES NODELIST
+      free x86-64,e2       1        2 gffw-login-001
+      free x86-64,c2       2       16 gffw-compute-a-[001-002]
+ allocated                 0        0 
+      down                 0        0 
+```
+```bash
+$ flux run -N 2 hostname
+gffw-compute-a-001
+gffw-compute-a-002
+```
+
+And when you are done:
+
+```bash
+$ make destroy
 ```
 
 ## Advanced

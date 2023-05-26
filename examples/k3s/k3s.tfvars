@@ -26,7 +26,7 @@ login_node_specs = [
     machine_type = "e2-standard-4"
     instances    = 1
     properties   = []
-    boot_script  = "./scripts/install_nfs.sh"
+    boot_script  = "./scripts/boot_script.sh"
   },
 ]
 login_scopes = ["cloud-platform"]
@@ -41,7 +41,7 @@ compute_node_specs = [
     compact      = false
     instances    = 2
     properties   = []
-    boot_script  = "./scripts/install_nfs.sh"
+    boot_script  = "./scripts/boot_script.sh"
   },
 ]
 compute_scopes = ["cloud-platform"]
