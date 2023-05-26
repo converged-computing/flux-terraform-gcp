@@ -51,17 +51,30 @@ Once you have images, choose a directory under [examples](examples) to deploy fr
 $ cd examples/basic
 ```
 
-For any example, edit the variables in the *.tfvars file. You should then init, fmt, validate, and then deploy (build)
+I find it's easiest to export my Google project in the environment for any terraform configs
+that mysteriously need it.
+
+```bash
+export GOOGLE_PROJECT=$(gcloud config get-value core/project)
+```
+
+For any example, edit the variables in the *.tfvars file. You should then init, fmt, validate, and then deploy:
 
 ```bash
 $ make init
 $ make fmt
 $ make validate
-$ make build
+$ make deploy
 ```
 
 And they all can be run with `make`:
 
 ```bash
 $ make
+```
+
+And when you are done:
+
+```bash
+$ make destroy
 ```
