@@ -8,6 +8,9 @@
 dnf update -y 
 dnf install -y wget bind-utils
 
-# Put this somewhere everyone can access
-wget -O /tmp/install-k3s.sh https://get.k3s.io
-chmod o+rx /tmp/install-k3s.sh
+# Put this somewhere we can inspect later. Likely for our production
+# setup we want to freeze the version we choose, meaning: 
+# 1. choose a commit to export to the environment, one of INSTALL_K3S_VERSION or INSTALL_K3S_COMMIT
+# 2. save the install script somewhere for provenance, etc.
+# 3. note you can also skip starting / enabling the services
+curl -sfL https://get.k3s.io | sh -
