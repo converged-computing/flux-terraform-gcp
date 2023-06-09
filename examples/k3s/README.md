@@ -32,10 +32,16 @@ $ make
 And inspect the [Makefile](Makefile) to see the terraform commands we apply
 to init, format, validate, and deploy. The deploy will setup networking and all the instances! Note that
 you can change any of the `-var` values to be appropriate for your environment.
-Before you shell in, copy the flux job (to launch and install k3s)
+Before you shell in, copy the flux job files (to launch and install k3s):
 
 ```bash
-$ gcloud compute scp --zone us-central1-a ./scripts/flux_job.sh gffw-login-001:/tmp/flux_job.sh
+# Copy over flux batch scripts
+gcloud compute scp --zone us-central1-a ./scripts/flux_batch.sh gffw-login-001:~/flux_batch.sh
+gcloud compute scp --zone us-central1-a ./scripts/flux_agent.sh gffw-login-001:~/flux_agent.sh
+gcloud compute scp --zone us-central1-a ./scripts/flux_control_plane.sh gffw-login-001:~/flux_control_plane.sh
+
+# We will need to copy this into a different location
+gcloud compute scp --zone us-central1-a ./scripts/k3s-rootless.service gffw-login-001:~/k3s-rootless.service
 ```
 
 After it's done creating and you've copied the file, shell in to verify that the cluster is up:
@@ -44,7 +50,21 @@ After it's done creating and you've copied the file, shell in to verify that the
 $ gcloud compute ssh gffw-login-001 --zone us-central1-a
 ```
 
-Is it up?
+Put the service file in the right spot:
+
+```bash
+mkdir -p ~/.config/systemd/user
+mv ./k3s-rootless.service ~/.config/systemd/user/k3s-rootless.service
+```
+
+You should see your three job files in your home now:
+
+```bash
+$ ls
+flux_agent.sh  flux_batch.sh  flux_control_plane.sh
+```
+
+Check that the cluster is up and working!
 
 ```bash
 $ flux resource list
@@ -65,14 +85,28 @@ gffw-compute-a-001
 gffw-compute-a-002
 ```
 
-Yes! Next we want to run our job that will install k3s and run the agent / service.
-Note that you very likely could install first and then just start with a new token -
-you'll want to do this for a production setup - there are many ways to start Flux,
-and the way I chose here intends to setup the control plane and nodes,
-and then give you an interactive session.
+k3s should also already be installed:
 
 ```bash
-$ flux alloc -N 3 /bin/bash /tmp/flux_job.sh
+$ which k3s
+/usr/local/bin/k3s
+```
+
+For Google cloud, I noticed a bug it was adding my local username as the uid/gid, and
+if you don't have the same in both places, you'll need to update this. E.g.,
+ensure the name in the first line of these two files is your `$USER`
+
+```
+cat /etc/subuid
+cat /etc/subgid
+```
+
+Yes! Next we want to run our batch job that will install k3s and run the agent / service.
+The batch job will write output for each of the agents and control plane locally,
+and run the control plane as an allocation to connect you to at the end.
+
+```bash
+$ flux batch -N 3 ./flux_batch.sh
 ```
 
 For debugging, if you shell into a worker node (and you are outside the allocation
@@ -80,8 +114,29 @@ running) you should be able to see it:
 
 ```bash
 $ flux jobs -a
+```
+```console
        JOBID USER     NAME       ST NTASKS NNODES     TIME INFO
-   ƒQ6MxnsnF vsochat_ flux        R      3      3   18.43s gffw-login-001,gffw-compute-a-[001-002]
+   ƒ56GUEWMD vsochat_ ./flux_ba+  R      3      3   7.960s gffw-login-001,gffw-compute-a-[001-002]
+```
+
+You'll want to look at the batch output to connect to the control plane:
+
+```bash
+$ cat flux-ƒavGzQKrP.out 
+```
+```console
+The login node for the control plane is gffw-login-001
+ƒQpjTeP
+ƒobgRjd
+To connect: flux proxy local:///tmp/flux-WvrGnh/local-0
+The job with the controller is ƒQpjTeP
+```
+
+E.g.,
+
+```bash
+$ flux proxy local:///tmp/flux-WvrGnh/local-0
 ```
 
 Once you have an interactive shell in the allocation, you should see the resources available to you:
@@ -98,22 +153,45 @@ $  flux resource list
       down                 0        0 
 ```
 
-Note that the worker steps are a little slow (I've run them manually and they take
-on the order of minutes) so likely you will want to be patient. When you first enter
-the interactive shell, you'll likely only see the control plane. But eventually
-(and hopefully!) you see the nodes:
+Next we need the kubeconfig (and I haven't figured out a solution for this) you'll need to copy the rancher
+kube config over:
+
+```bash
+sudo cp /etc/rancher/k3s/k3s.yaml 
+sudo chown -R $USER $HOME/.kube
+```
+
+Obviously a user cannot do this (requires sudo) but we need to figure out a way to do
+it. I tried adding variables to start to do it, but it seemed to create a weird empty symlink
+instead and didn't work yet. I opened an issue [here](https://github.com/k3s-io/k3s/discussions/7615).
+
+```bash
+$ kubectl --kubeconfig=$HOME/.kube/config get nodes
+```
+```console
+$ kubectl --kubeconfig=$HOME/.kube/config get nodes
+NAME             STATUS   ROLES                  AGE   VERSION
+gffw-login-001   Ready    control-plane,master   76m   v1.26.4+k3s1
+```
+
+That indicates the master is ready. I haven't figured out the correct command for the agents to connect -
+issue and discussion is [here](https://github.com/k3s-io/k3s/discussions/7615#discussioncomment-6015834).
+Note that if we just ran this as the install script with sudo, it would connect fine 
+(see the [Flux Operator example](https://github.com/flux-framework/flux-operator/tree/main/examples/nested/k3s/basic))
+where we do this same workflow to start the control plane and workers under flux and have
+a working cluster.
+
+If you "force it" and run the install script with sudo, it does seem to work:
 
 ```bash
 $ kubectl get nodes
 NAME                 STATUS   ROLES                  AGE   VERSION
-gffw-compute-a-001   Ready    <none>                 14m   v1.26.4+k3s1
-gffw-login-001       Ready    control-plane,master   40m   v1.26.4+k3s1
+gffw-compute-a-001   Ready    <none>                 17m   v1.26.4+k3s1
+gffw-login-001       Ready    control-plane,master   42m   v1.26.4+k3s1
+gffw-compute-a-002   Ready    <none>                 1s    v1.27.2-rc3+k3s1
 ```
 
-I suspect if we grab the install script and then can see what is taking a long time, these
-steps (primarily installs of stuffs) can be run apriori. I also wish there was a better
-way to get the logs for each of the startup tasks (e.g., for the two compute nodes)
-because it's very hard to debug. If you need to shell in to a worker to start it manually:
+Which I did by doing the following (on each of the agent nodes):
 
 ```bash
 export secret_token=pancakes-chicken-finger-change-me
@@ -124,17 +202,7 @@ echo "Login node is ${login_node}"
 curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=testing K3S_URL=https://${login_node}:6443 K3S_TOKEN=${secret_token} sh -
 ```
 
-I had to do this manually on the worker nodes, and I think it's because my strategy for issuing the commands
-is not right. I think likely we want to do some kind of flux broker or flux start or flux batch.
-Too tired to try tonight. When they are all registered:
-
-```bash
-$ kubectl get nodes
-NAME                 STATUS   ROLES                  AGE   VERSION
-gffw-compute-a-001   Ready    <none>                 17m   v1.26.4+k3s1
-gffw-login-001       Ready    control-plane,master   42m   v1.26.4+k3s1
-gffw-compute-a-002   Ready    <none>                 1s    v1.27.2-rc3+k3s1
-```
+However, that won't fly in an environment without root.
 
 We are close!
 
