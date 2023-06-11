@@ -22,7 +22,7 @@ You'll need to first [install packer](https://developer.hashicorp.com/packer/dow
 You can use the Makefile there to build all (or a select set of) images.
 
 ```bash
-cd ./build-images
+cd ./build-images/basic
 ```
 ```bash
 $ make
