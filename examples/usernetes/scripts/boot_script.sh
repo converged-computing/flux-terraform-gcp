@@ -4,7 +4,7 @@
 # These steps will vary based on the hostname
 
 # Hard code my username for now :)
-user=sochat1_llnl_gov
+user=${USER:-sochat1_llnl_gov}
 
 # We also need the node names - not ideal, but for now they are predictable so it works
 node_crio=gffw-compute-a-001
@@ -14,8 +14,8 @@ node_master=gffw-login-001
 # What node is running this?
 nodename=$(hostname)
 
-# Install usernetes on all nodes
-sudo dnf install -y wget
+# Install usernetes and fuse3 on all nodes
+sudo dnf install -y wget fuse3
 wget https://github.com/rootless-containers/usernetes/releases/download/v20230518.0/usernetes-x86_64.tbz
 tar xjvf usernetes-x86_64.tbz
 cd usernetes
@@ -35,16 +35,16 @@ fi
 # The first compute node runs crio
 if [[ "$nodename" == *"${node_crio}"* ]]; then
 
-    echo "I am the 0th compute node ${nodename} going to run crio"
+    echo "I am the 1st compute node ${nodename} going to run crio"
     # 10250/tcp: kubelet, 8472/udp: flannel
     /bin/bash ./install.sh --wait-init-certs --start=u7s-node.target --cidr=10.0.101.0/24 --publish=0.0.0.0:10250:10250/tcp --publish=0.0.0.0:8472:8472/udp --cni=flannel --cri=crio
 
 fi
 
-# The first compute node runs crio
+# The second compute node runs crio
 if [[ "$nodename" == *"${node_containerd}"* ]]; then
 
-    echo "I am the 1st compute node ${nodename} going to run containerd"
+    echo "I am the 2nd compute node ${nodename} going to run containerd"
 
     # 10250/tcp: kubelet, 8472/udp: flannel
     /bin/bash ./install.sh --wait-init-certs --start=u7s-node.target --cidr=10.0.102.0/24 --publish=0.0.0.0:10250:10250/tcp --publish=0.0.0.0:8472:8472/udp --cni=flannel --cri=containerd

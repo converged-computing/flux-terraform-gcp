@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+make# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ manager_scopes       = ["cloud-platform"]
 login_family         = "flux-usernetes-login-x86-64"
 compute_family       = "flux-usernetes-compute-x86-64"
 manager_family       = "flux-usernetes-manager-x86-64"
-enable_os_login      = "FALSE"
+enable_os_login      = "TRUE"
 
 login_node_specs = [
   {
@@ -28,7 +28,7 @@ login_node_specs = [
     instances       = 1
     properties      = []
     boot_script     = "scripts/boot_script.sh"
-    enable_os_login = "FALSE"
+    enable_os_login = "TRUE"
   },
 ]
 login_scopes = ["cloud-platform"]
@@ -38,7 +38,7 @@ compute_node_specs = [
     name_prefix     = "gffw-compute-a"
     machine_arch    = "x86-64"
     machine_type    = "c2-standard-16"
-    enable_os_login = "FALSE"
+    enable_os_login = "TRUE"
     gpu_type        = null
     gpu_count       = 0
     compact         = false
