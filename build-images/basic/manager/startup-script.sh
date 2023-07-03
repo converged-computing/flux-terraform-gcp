@@ -205,6 +205,7 @@ else
 fi
 
 sed -i "s/FLUXMANGER/$(hostname -s)/g" /usr/local/etc/flux/system/conf.d/system.toml
+chown -R flux:flux /usr/local/etc/flux
 
 CORES=$(($(hwloc-ls -p | grep -i core | wc -l)-1))
 /usr/local/bin/flux R encode --ranks=0 --hosts=$(hostname -s) --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
@@ -212,7 +213,6 @@ chown flux:flux /usr/local/etc/flux/system/R
 
 cp /usr/share/flux-core/etc/flux.service /usr/lib/systemd/system
 CONFIG_FLUX_SYSTEM
-
 
 cat << "CONFIG_FLUX_RESOURCES" > /etc/flux/manager/conf.d/02-resources.sh
 #!/usr/bin/env  bash

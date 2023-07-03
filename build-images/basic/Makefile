@@ -16,4 +16,3 @@ login:
 .PHONY: manager
 manager: 
 	$(MAKE) -C manager all
-

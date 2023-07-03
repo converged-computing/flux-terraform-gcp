@@ -33,13 +33,6 @@ $ make login
 $ make manager
 ```
 
-If you are using the terraform recipes from [Google Cloud]() they still require an
-arm image, so you'll need to build that:
-
-```bash
-$ make arm
-```
-
 Note that you can run these in separate terminals so they run at once and go
 faster. We primarily use the defaults in the *.pkr.hcl files, which can
 be changed directly or over-ridden in the Makefile with `-var name=value`.
