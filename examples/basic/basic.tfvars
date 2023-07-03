@@ -39,7 +39,7 @@ compute_node_specs = [
     gpu_type     = null
     gpu_count    = 0
     compact      = false
-    instances    = 2
+    instances    = 1
     properties   = []
     boot_script  = "./scripts/install_nfs.sh"
   },
