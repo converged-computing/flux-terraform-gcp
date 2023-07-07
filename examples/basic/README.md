@@ -1,7 +1,6 @@
 # Basic Flux Framework on GCP
 
 This deployment illustrates deploying a flux-framework cluster on GCP.
-All components are included here.
 
 # Usage
 

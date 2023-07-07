@@ -128,16 +128,11 @@ allowed-users = [ "flux" ]
 allowed-shells = [ "/usr/local/libexec/flux/flux-shell" ]
 IMP_TOML
 
-sudo -u flux mkdir -p /usr/local/etc/flux/system/conf.d
-
 # system.toml will be written here
 sudo -u flux mkdir -p /usr/local/etc/flux/system/conf.d
 
-# template directory will be written here
-sudo -u flux mkdir -p /usr/local/etc/flux/templates
-
 # The default system.toml if a custom one is not provided
-cat << SYSTEM_TOML > /usr/local/etc/flux/templates/system.toml
+cat << SYSTEM_TOML > /usr/local/etc/flux/system/conf.d/system.toml
 # Flux needs to know the path to the IMP executable
 [exec]
 imp = "/usr/local/libexec/flux/flux-imp"
@@ -197,15 +192,7 @@ cat << "CONFIG_FLUX_SYSTEM" > /etc/flux/manager/conf.d/01-system.sh
 #!/bin/bash
 
 # This allows a more expert terraform user to write the system.toml on the fly
-brokerConf=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google")
-if [[ "X${brokerConf}" != "X" ]]; then
-    sudo -u flux echo ${brokerConf} > /usr/local/etc/flux/system/conf.d/system.toml
-else
-    sudo -u flux cp /usr/local/etc/flux/templates/system.toml /usr/local/etc/flux/system/conf.d/system.toml
-fi
-
 sed -i "s/FLUXMANGER/$(hostname -s)/g" /usr/local/etc/flux/system/conf.d/system.toml
-chown -R flux:flux /usr/local/etc/flux
 
 CORES=$(($(hwloc-ls -p | grep -i core | wc -l)-1))
 /usr/local/bin/flux R encode --ranks=0 --hosts=$(hostname -s) --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
