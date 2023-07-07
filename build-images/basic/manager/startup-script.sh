@@ -128,7 +128,10 @@ allowed-users = [ "flux" ]
 allowed-shells = [ "/usr/local/libexec/flux/flux-shell" ]
 IMP_TOML
 
+# system.toml will be written here
 sudo -u flux mkdir -p /usr/local/etc/flux/system/conf.d
+
+# The default system.toml if a custom one is not provided
 cat << SYSTEM_TOML > /usr/local/etc/flux/system/conf.d/system.toml
 # Flux needs to know the path to the IMP executable
 [exec]
@@ -188,6 +191,7 @@ mkdir -p /etc/flux/manager/conf.d
 cat << "CONFIG_FLUX_SYSTEM" > /etc/flux/manager/conf.d/01-system.sh
 #!/bin/bash
 
+# This allows a more expert terraform user to write the system.toml on the fly
 sed -i "s/FLUXMANGER/$(hostname -s)/g" /usr/local/etc/flux/system/conf.d/system.toml
 
 CORES=$(($(hwloc-ls -p | grep -i core | wc -l)-1))

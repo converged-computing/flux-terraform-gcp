@@ -22,7 +22,8 @@ You'll need to first [install packer](https://developer.hashicorp.com/packer/dow
 You can use the Makefile there to build all (or a select set of) images.
 
 ```bash
-cd ./build-images
+export GOOGLE_PROJECT=myproject
+cd ./build-images/basic
 ```
 ```bash
 $ make
@@ -31,6 +32,7 @@ $ make compute
 $ make login
 $ make manager
 ```
+
 Note that you can run these in separate terminals so they run at once and go
 faster. We primarily use the defaults in the *.pkr.hcl files, which can
 be changed directly or over-ridden in the Makefile with `-var name=value`.

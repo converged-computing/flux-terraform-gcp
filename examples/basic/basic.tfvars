@@ -35,11 +35,11 @@ compute_node_specs = [
   {
     name_prefix  = "gffw-compute-a"
     machine_arch = "x86-64"
-    machine_type = "c2-standard-16"
+    machine_type = "c2-standard-8"
     gpu_type     = null
     gpu_count    = 0
     compact      = false
-    instances    = 2
+    instances    = 1
     properties   = []
     boot_script  = "./scripts/install_nfs.sh"
   },

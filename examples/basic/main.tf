@@ -14,8 +14,8 @@
 
 
 module "cluster" {
-  source = "github.com/GoogleCloudPlatform/scientific-computing-examples.git//fluxfw-gcp/tf?ref=openmpi"
-
+  #source = "github.com/GoogleCloudPlatform/scientific-computing-examples.git//fluxfw-gcp/tf?ref=openmpi"
+  source     = "../../tf"
   project_id = var.project_id
   region     = var.region
 
