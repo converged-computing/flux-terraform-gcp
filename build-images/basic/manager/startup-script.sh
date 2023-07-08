@@ -248,7 +248,7 @@ resourceHosts=$(curl "http://metadata.google.internal/computeMetadata/v1/instanc
 CORES=$(($(hwloc-ls -p | grep -i core | wc -l)-1))
 
 if [[ "X${resourceHosts}" != "X" ]]; then
-  /usr/local/bin/flux R encode --ranks=0 --hosts=${resourceHosts} --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
+  /usr/local/bin/flux R encode --hosts=${resourceHosts} --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
 else
   /usr/local/bin/flux R encode --ranks=0 --hosts=$(hostname -s) --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
 fi
