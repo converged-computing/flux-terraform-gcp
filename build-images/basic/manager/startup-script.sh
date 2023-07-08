@@ -212,7 +212,8 @@ if [[ "X${brokerConfig}" != "X" ]]; then
    # We need to parse it directly into a file, otherwise will lose newlines
    echo "Found custom broker config"
    rm -rf /usr/local/etc/flux/system/conf.d/system.toml
-   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google" > /usr/local/etc/flux/system/conf.d/system.toml
+   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google" > /tmp/system.toml 
+   mv /tmp/system.toml /usr/local/etc/flux/system/conf.d/system.toml
    sudo chown -R flux /usr/local/etc/flux/system/conf.d
 fi
 
@@ -221,7 +222,8 @@ curveCert=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/at
 if [[ "X${curveCert}" != "X" ]]; then
    echo "Found custom curve.cert"
    rm -rf /usr/local/etc/flux/system/curve.cert
-   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google" > /usr/local/etc/flux/system/curve.cert
+   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google" > /tmp/curve.cert
+   mv /tmp/curve.cert /usr/local/etc/flux/system/curve.cert
    sudo chown flux /usr/local/etc/flux/system/curve.cert
 fi
 
