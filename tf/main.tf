@@ -34,6 +34,7 @@ module "management_node" {
     broker_config      = var.broker_config
     resource_hosts     = var.resource_hosts
     curve_cert         = var.curve_cert
+    munge_key          = var.munge_key
 }
 
 module "login_nodes" {

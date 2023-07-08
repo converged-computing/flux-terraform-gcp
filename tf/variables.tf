@@ -33,6 +33,13 @@ variable "curve_cert" {
     nullable    = true
 }
 
+variable "munge_key" {
+    description = "A custom munge key"
+    type        = string
+    default     = ""
+    nullable    = true
+}
+
 variable "cluster_storage" { 
     description = "A map with keys 'share' and 'mountpoint' describing an NFS export and its intended mount point"
     type        = map(string)

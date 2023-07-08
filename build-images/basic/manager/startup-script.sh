@@ -210,6 +210,17 @@ if [[ "X${curveCert}" != "X" ]]; then
    sudo chown flux /usr/local/etc/flux/system/curve.cert
 fi
 
+# If we are given a custom munge.key, also use it
+mungeKey=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/munge-key" -H "Metadata-Flavor: Google")
+if [[ "X${mungeKey}" != "X" ]]; then
+   echo "Found custom broker munge.key"
+   mkdir -p /etc/munge
+   rm -rf /etc/munge/munge.key
+   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/munge.key" -H "Metadata-Flavor: Google" > /etc/munge/munge.key
+else
+   /usr/sbin/create-munge-key
+fi
+
 # Update FLUXMANAGER with actual hostname
 sed -i "s/FLUXMANGER/$(hostname -s)/g" /usr/local/etc/flux/system/conf.d/system.toml
 
@@ -439,8 +450,6 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 FIRST_BOOT_UNIT
-
-/usr/sbin/create-munge-key
 
 systemctl enable flux-config-manager.service
 
