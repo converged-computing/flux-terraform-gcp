@@ -26,6 +26,13 @@ variable "resource_hosts" {
     nullable    = true
 }
 
+variable "curve_cert" {
+    description = "A custom curve certificate for bursting"
+    type        = string
+    default     = ""
+    nullable    = true
+}
+
 variable "compute_node_specs" {
     description = "A JSON encoded list of maps each with the keys: 'name_prefix', 'machin_arch', 'machine_type', and 'instances' which describe the compute node instances to create"
     type        = string

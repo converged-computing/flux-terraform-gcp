@@ -33,6 +33,7 @@ module "management_node" {
     nfs_mounts         = var.cluster_storage
     broker_config      = var.broker_config
     resource_hosts     = var.resource_hosts
+    curve_cert         = var.curve_cert
 }
 
 module "login_nodes" {

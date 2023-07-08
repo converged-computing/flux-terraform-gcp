@@ -19,9 +19,15 @@ variable "broker_config" {
     nullable    = true
 }
 
-
 variable "resource_hosts" {
     description = "A custom hostlist name for flux resource generation"
+    type        = string
+    default     = ""
+    nullable    = true
+}
+
+variable "curve_cert" {
+    description = "A custom curve certificate for bursting"
     type        = string
     default     = ""
     nullable    = true

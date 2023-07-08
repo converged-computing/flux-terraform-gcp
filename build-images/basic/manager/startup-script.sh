@@ -198,6 +198,16 @@ if [[ "X${brokerConfig}" != "X" ]]; then
    echo "Found custom broker config"
    rm -rf /usr/local/etc/flux/system/conf.d/system.toml
    curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google" > /usr/local/etc/flux/system/conf.d/system.toml
+   sudo chown -R flux /usr/local/etc/flux/system/conf.d
+fi
+
+# If we are given a custom curve.cert, use it
+curveCert=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google")
+if [[ "X${curveCert}" != "X" ]]; then
+   echo "Found custom broker curve.cert"
+   rm -rf /usr/local/etc/flux/system/curve.cert
+   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google" > /usr/local/etc/flux/system/curve.cert
+   sudo chown flux /usr/local/etc/flux/system/curve.cert
 fi
 
 # Update FLUXMANAGER with actual hostname
