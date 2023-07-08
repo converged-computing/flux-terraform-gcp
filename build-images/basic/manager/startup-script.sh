@@ -187,15 +187,76 @@ chmod u+r,u-wx,go-rwx /usr/local/etc/flux/imp/conf.d/imp.toml
 chmod u+s /usr/local/libexec/flux/flux-imp
 
 mkdir -p /etc/flux/manager/conf.d
+mkdir -p /run/flux
+chown -R flux:flux /run/flux
+
+# A quick Python script for handling decoding
+
+cat << "PYTHON_DECODING_SCRIPT" > /etc/flux/manager/convert_munge_key.py
+#!/usr/bin/env python3
+
+import sys
+import base64
+
+string = sys.argv[1]
+dest = sys.argv[2]
+encoded = string.encode('utf-8')
+with open(dest, 'wb') as fd:
+    fd.write(base64.b64decode(encoded))
+PYTHON_DECODING_SCRIPT
 
 cat << "CONFIG_FLUX_SYSTEM" > /etc/flux/manager/conf.d/01-system.sh
 #!/bin/bash
 
 # This allows a more expert terraform user to write the system.toml on the fly
+brokerConfig=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google")
+if [[ "X${brokerConfig}" != "X" ]]; then
+   # We need to parse it directly into a file, otherwise will lose newlines
+   echo "Found custom broker config"
+   rm -rf /usr/local/etc/flux/system/conf.d/system.toml
+   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google" > /tmp/system.toml 
+   mv /tmp/system.toml /usr/local/etc/flux/system/conf.d/system.toml
+   sudo chown -R flux /usr/local/etc/flux/system/conf.d
+fi
+
+# If we are given a custom curve.cert, use it
+curveCert=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google")
+if [[ "X${curveCert}" != "X" ]]; then
+   echo "Found custom curve.cert"
+   rm -rf /usr/local/etc/flux/system/curve.cert
+   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google" > /tmp/curve.cert
+   mv /tmp/curve.cert /usr/local/etc/flux/system/curve.cert
+   sudo chmod u=r,g=,o= /usr/local/etc/flux/system/curve.cert
+   sudo chown flux:flux /usr/local/etc/flux/system/curve.cert
+fi
+
+# If we are given a custom munge.key, also use it. This is base64 encoded
+mungeKey=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/munge-key" -H "Metadata-Flavor: Google")
+if [[ "X${mungeKey}" != "X" ]]; then
+   echo "Found custom munge.key"
+   mkdir -p /etc/munge
+   rm -rf /etc/munge/munge.key
+   python3 /etc/flux/manager/convert_munge_key.py ${mungeKey} /etc/munge/munge.key
+   sudo chmod u=r,g=,o= /etc/munge/munge.key
+   sudo chown munge:munge /etc/munge/munge.key 
+else
+   /usr/sbin/create-munge-key
+fi
+
+# Update FLUXMANAGER with actual hostname
 sed -i "s/FLUXMANGER/$(hostname -s)/g" /usr/local/etc/flux/system/conf.d/system.toml
 
+# This allows custom hostlist instead
+resourceHosts=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/resource-hosts" -H "Metadata-Flavor: Google")
+
+# This assumes the instances are the same
 CORES=$(($(hwloc-ls -p | grep -i core | wc -l)-1))
-/usr/local/bin/flux R encode --ranks=0 --hosts=$(hostname -s) --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
+
+if [[ "X${resourceHosts}" != "X" ]]; then
+  /usr/local/bin/flux R encode --hosts=${resourceHosts} --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
+else
+  /usr/local/bin/flux R encode --ranks=0 --hosts=$(hostname -s) --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
+fi
 chown flux:flux /usr/local/etc/flux/system/R
 
 cp /usr/share/flux-core/etc/flux.service /usr/lib/systemd/system
@@ -411,8 +472,6 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 FIRST_BOOT_UNIT
-
-/usr/sbin/create-munge-key
 
 systemctl enable flux-config-manager.service
 

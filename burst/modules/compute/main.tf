@@ -59,15 +59,14 @@ module "flux_compute_instance_template" {
     source_image_project = local.compute_images["${var.machine_arch}"].project
     automatic_restart    = local.automatic_restart
     on_host_maintenance  = local.on_host_maintenance
+    startup_script       = var.boot_script
 
     metadata             = { 
-        "boot-script"      : var.boot_script
-        "login-node-specs" : var.login_node_specs
         "enable-oslogin"   : "TRUE",
-        "flux-manager"     : "${var.manager}",
         "VmDnsSetting"     : "GlobalDefault",
         "nfs-mounts"       : jsonencode(var.nfs_mounts),
         "gpus-attached"    : var.gpu != null ? "TRUE" : "FALSE"
+        "munge-key"        : var.munge_key
     }
 }
 

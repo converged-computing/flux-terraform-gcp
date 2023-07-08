@@ -16,3 +16,7 @@ login:
 .PHONY: manager
 manager: 
 	$(MAKE) -C manager all
+
+.PHONY: bursted
+bursted: 
+	$(MAKE) -C bursted all

@@ -36,6 +36,9 @@ module "flux_manager_instance_template" {
         "compute-node-specs" : var.compute_node_specs
         "login-node-specs"   : var.login_node_specs
         "broker-config"      : var.broker_config
+        "resource-hosts"     : var.resource_hosts
+        "curve-cert"         : var.curve_cert
+        "munge-key"          : var.munge_key
     }
 }
 
