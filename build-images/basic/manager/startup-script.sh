@@ -188,6 +188,21 @@ chmod u+s /usr/local/libexec/flux/flux-imp
 
 mkdir -p /etc/flux/manager/conf.d
 
+# A quick Python script for handling decoding
+
+cat << "PYTHON_DECODING_SCRIPT" > /etc/flux/manager/convert_munge_key.py
+#!/usr/bin/env python3
+
+import sys
+import base64
+
+string = sys.argv[1]
+dest = sys.argv[2]
+encoded = string.encode('utf-8')
+with open(dest, 'wb') as fd:
+    fd.write(base64.b64decode(encoded))
+PYTHON_DECODING_SCRIPT
+
 cat << "CONFIG_FLUX_SYSTEM" > /etc/flux/manager/conf.d/01-system.sh
 #!/bin/bash
 
@@ -204,19 +219,19 @@ fi
 # If we are given a custom curve.cert, use it
 curveCert=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google")
 if [[ "X${curveCert}" != "X" ]]; then
-   echo "Found custom broker curve.cert"
+   echo "Found custom curve.cert"
    rm -rf /usr/local/etc/flux/system/curve.cert
    curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google" > /usr/local/etc/flux/system/curve.cert
    sudo chown flux /usr/local/etc/flux/system/curve.cert
 fi
 
-# If we are given a custom munge.key, also use it
+# If we are given a custom munge.key, also use it. This is base64 encoded
 mungeKey=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/munge-key" -H "Metadata-Flavor: Google")
 if [[ "X${mungeKey}" != "X" ]]; then
-   echo "Found custom broker munge.key"
+   echo "Found custom munge.key"
    mkdir -p /etc/munge
    rm -rf /etc/munge/munge.key
-   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/munge.key" -H "Metadata-Flavor: Google" > /etc/munge/munge.key
+   python3 /etc/flux/manager/convert_munge_key.py ${mungeKey} /etc/munge/munge.key
 else
    /usr/sbin/create-munge-key
 fi
