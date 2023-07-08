@@ -12,13 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "broker_config" {
-    description = "A custom broker config (system.toml) to provide to the manager"
-    type        = string
-    default     = ""
-    nullable    = true
-}
-
 variable "automatic_restart" {
   type        = bool
   description = "(Optional) Specifies whether the instance should be automatically restarted if it is terminated by Compute Engine (not terminated by a user)."

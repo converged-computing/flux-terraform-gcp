@@ -192,10 +192,28 @@ cat << "CONFIG_FLUX_SYSTEM" > /etc/flux/manager/conf.d/01-system.sh
 #!/bin/bash
 
 # This allows a more expert terraform user to write the system.toml on the fly
+brokerConfig=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google")
+if [[ "X${brokerConfig}" != "X" ]]; then
+   # We need to parse it directly into a file, otherwise will lose newlines
+   echo "Found custom broker config"
+   rm -rf /usr/local/etc/flux/system/conf.d/system.toml
+   curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/broker-config" -H "Metadata-Flavor: Google" > /usr/local/etc/flux/system/conf.d/system.toml
+fi
+
+# Update FLUXMANAGER with actual hostname
 sed -i "s/FLUXMANGER/$(hostname -s)/g" /usr/local/etc/flux/system/conf.d/system.toml
 
+# This allows custom hostlist instead
+resourceHosts=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/resource-hosts" -H "Metadata-Flavor: Google")
+
+# This assumes the instances are the same
 CORES=$(($(hwloc-ls -p | grep -i core | wc -l)-1))
-/usr/local/bin/flux R encode --ranks=0 --hosts=$(hostname -s) --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
+
+if [[ "X${resourceHosts}" != "X" ]]; then
+  /usr/local/bin/flux R encode --ranks=0 --hosts=${resourceHosts} --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
+else
+  /usr/local/bin/flux R encode --ranks=0 --hosts=$(hostname -s) --cores=0-$CORES --property=manager | tee /usr/local/etc/flux/system/R > /dev/null
+fi
 chown flux:flux /usr/local/etc/flux/system/R
 
 cp /usr/share/flux-core/etc/flux.service /usr/lib/systemd/system

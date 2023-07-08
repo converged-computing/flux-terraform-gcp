@@ -19,6 +19,14 @@ variable "broker_config" {
     nullable    = true
 }
 
+
+variable "resource_hosts" {
+    description = "A custom hostlist name for flux resource generation"
+    type        = string
+    default     = ""
+    nullable    = true
+}
+
 variable "cluster_storage" { 
     description = "A map with keys 'share' and 'mountpoint' describing an NFS export and its intended mount point"
     type        = map(string)

@@ -19,6 +19,13 @@ variable "broker_config" {
     nullable    = true
 }
 
+variable "resource_hosts" {
+    description = "A custom listing of hosts for resource generation"
+    type        = string
+    default     = ""
+    nullable    = true
+}
+
 variable "compute_node_specs" {
     description = "A JSON encoded list of maps each with the keys: 'name_prefix', 'machin_arch', 'machine_type', and 'instances' which describe the compute node instances to create"
     type        = string
