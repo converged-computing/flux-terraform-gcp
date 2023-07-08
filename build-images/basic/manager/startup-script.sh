@@ -187,6 +187,8 @@ chmod u+r,u-wx,go-rwx /usr/local/etc/flux/imp/conf.d/imp.toml
 chmod u+s /usr/local/libexec/flux/flux-imp
 
 mkdir -p /etc/flux/manager/conf.d
+mkdir -p /run/flux
+chown -R flux:flux /run/flux
 
 # A quick Python script for handling decoding
 
@@ -224,7 +226,8 @@ if [[ "X${curveCert}" != "X" ]]; then
    rm -rf /usr/local/etc/flux/system/curve.cert
    curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/curve-cert" -H "Metadata-Flavor: Google" > /tmp/curve.cert
    mv /tmp/curve.cert /usr/local/etc/flux/system/curve.cert
-   sudo chown flux /usr/local/etc/flux/system/curve.cert
+   sudo chmod u=r,g=,o= /usr/local/etc/flux/system/curve.cert
+   sudo chown flux:flux /usr/local/etc/flux/system/curve.cert
 fi
 
 # If we are given a custom munge.key, also use it. This is base64 encoded
@@ -234,6 +237,8 @@ if [[ "X${mungeKey}" != "X" ]]; then
    mkdir -p /etc/munge
    rm -rf /etc/munge/munge.key
    python3 /etc/flux/manager/convert_munge_key.py ${mungeKey} /etc/munge/munge.key
+   sudo chmod u=r,g=,o= /etc/munge/munge.key
+   sudo chown munge:munge /etc/munge/munge.key 
 else
    /usr/sbin/create-munge-key
 fi
