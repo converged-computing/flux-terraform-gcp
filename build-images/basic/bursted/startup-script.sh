@@ -53,7 +53,10 @@ dnf install -y \
     gcsfuse \
     jq
 
-useradd -M -r -s /bin/false -c "flux-framework identity" flux
+# IMPORTANT: the flux user/group must match!
+# useradd -M -r -s /bin/false -c "flux-framework identity" flux
+groupadd -g 1000 flux
+useradd -u 1000 -g 1000 -M -r -s /bin/false -c "flux-framework identity" flux
 
 # Update grub
 # cat /etc/default/grub | grep GRUB_CMDLINE_LINUX=
