@@ -26,7 +26,7 @@ variable "compact_placement" {
 variable "family" {
     description = "The source X86 image family prefix to use"
     type        = string
-    default     = "flux-bursted-compute-x86-64"
+    default     = "flux-fw-bursted-x86-64"
 }
 
 variable "gpu" {

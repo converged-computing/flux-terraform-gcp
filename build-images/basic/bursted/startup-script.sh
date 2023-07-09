@@ -22,9 +22,12 @@ dnf install -y \
     munge-devel \
     hwloc \
     hwloc-devel \
+    pmix \
+    pmix-devel \
     lua \
     lua-devel \
     lua-posix \
+    libevent-devel \
     czmq-devel \
     jansson-devel \
     lz4-devel \
@@ -62,25 +65,26 @@ grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
 
 cd /usr/share
 
+# These versions are chosen to match the demo container
 git clone -b v0.49.0 https://github.com/flux-framework/flux-core.git
 git clone -b v0.27.0 https://github.com/flux-framework/flux-sched.git
-git clone -b v0.8.0 https://github.com/flux-framework/flux-security.git
+git clone -b v0.7.0 https://github.com/flux-framework/flux-security.git
 git clone -b v0.3.0 https://github.com/flux-framework/flux-pmix.git
 
 cd /usr/share/flux-security
 
 ./autogen.sh
-./configure --prefix=/usr
+./configure --prefix=/usr --sysconfdir=/etc
 
 make
 make install
 
 cd /usr/share/flux-core
 
+# Important - if PKGCONFIG is used here it seems to default to /usr/local
+# and I don't think we want this
 ./autogen.sh
-PKG_CONFIG_PATH=$(pkg-config --variable pc_path pkg-config)
-PKG_CONFIG_PATH=/usr/lib/pkgconfig:$PKG_CONFIG_PATH
-PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ./configure --prefix=/usr --with-flux-security
+./configure --prefix=/usr --with-flux-security --sysconfdir=/etc
 
 make -j 8
 make install
@@ -88,15 +92,28 @@ make install
 cd /usr/share/flux-sched
 
 ./autogen.sh
-./configure --prefix=/usr
+./configure --prefix=/usr --sysconfdir=/etc
 
 make
 make install
 
+# Install openpmix, prrte (for flux-pmix)
+git clone https://github.com/openpmix/openpmix.git /opt/openpmix
+git clone https://github.com/openpmix/prrte.git /opt/prrte
+cd /opt/openpmix
+git checkout fefaed568f33bf86f28afb6e45237f1ec5e4de93
+./autogen.pl
+./configure --prefix=/usr --disable-static && make -j 4 install
+ldconfig 
+cd /opt/prrte
+git checkout 477894f4720d822b15cab56eee7665107832921c
+./autogen.pl
+./configure --prefix=/usr && make -j 4 install
+
 cd /usr/share/flux-pmix
 
 ./autogen.sh
-./configure --prefix=/usr
+./configure --prefix=/usr --sysconfdir=/etc
 
 make
 make install
