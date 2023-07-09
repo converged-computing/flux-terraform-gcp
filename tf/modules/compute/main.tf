@@ -62,7 +62,6 @@ module "flux_compute_instance_template" {
 
     metadata             = { 
         "boot-script"      : var.boot_script
-        "broker-config"    : var.broker_config
         "login-node-specs" : var.login_node_specs
         "enable-oslogin"   : "TRUE",
         "flux-manager"     : "${var.manager}",
