@@ -118,6 +118,11 @@ cd /usr/share/flux-pmix
 make
 make install
 
+# IMPORANT: the above installs to /usr/lib64 but you will get a flux_open error if it's
+# not found in /usr/lib. So we put in both places :)
+cp -R /usr/lib64/flux /usr/lib/flux
+cp -R /usr/lib64/libflux-* /usr/lib/
+
 # A quick Python script for handling decoding
 cat << "PYTHON_DECODING_SCRIPT" > /etc/flux/manager/convert_munge_key.py
 #!/usr/bin/env python3
