@@ -145,4 +145,6 @@ echo "/usr/etc/flux/security *(rw,no_subtree_check,no_root_squash)" >> /etc/expo
 echo "/usr/etc/flux/system *(rw,no_subtree_check,no_root_squash)" >> /etc/exports
 echo "/etc/munge *(rw,no_subtree_check,no_root_squash)" >> /etc/exports
 
+# Generate munge key. For a bursted cluster, this will need to be replaced
+/usr/sbin/create-munge-key
 systemctl enable nfs-server
