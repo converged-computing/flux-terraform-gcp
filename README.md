@@ -32,41 +32,9 @@ $ make
 
 ### Deploy with Terraform
 
-TODO UPDATE EXAMPLE
-
-Once you have images, choose a directory under [examples](examples) to deploy from:
-
-```bash
-$ cd examples/basic
-```
-
-I find it's easiest to export my Google project in the environment for any terraform configs
-that mysteriously need it.
-
-```bash
-export GOOGLE_PROJECT=$(gcloud config get-value core/project)
-```
-
-For any example, edit the variables in the *.tfvars file. You should then init, fmt, validate, and then deploy:
-
-```bash
-$ make init
-$ make fmt
-$ make validate
-$ make deploy
-```
-
-And they all can be run with `make`:
-
-```bash
-$ make
-```
-
-And when you are done:
-
-```bash
-$ make destroy
-```
+**Note** we are currently updating our images, and have not updated our examples yet.
+We are mostly using [burst](burst) for bursted use cases. We will update the examples
+when we return to working on the [tf](tf) images.
 
 ## License
 
