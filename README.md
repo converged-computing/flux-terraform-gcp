@@ -20,32 +20,19 @@ this is for packer to find and use.
 Let's first go into [build-images](build-images) to use packer to build our images.
 You'll need to first [install packer](https://developer.hashicorp.com/packer/downloads)
 You can use the Makefile there to build all (or a select set of) images.
+Note that we are currently advocating for using the single bursted image:
 
 ```bash
 export GOOGLE_PROJECT=myproject
-cd ./build-images/basic
+cd ./build-images/bursted
 ```
 ```bash
 $ make
-# or
-$ make compute
-$ make login
-$ make manager
 ```
 
-Note that you can run these in separate terminals so they run at once and go
-faster. We primarily use the defaults in the *.pkr.hcl files, which can
-be changed directly or over-ridden in the Makefile with `-var name=value`.
-A nicer design would be to have one common node built for all purposes,
-but for now I'm mimicking the design [here](https://github.com/GoogleCloudPlatform/scientific-computing-examples/tree/main/fluxfw-gcp/img).
-
-#### Advanced
-
-This isn't added, but there is a snippet we can add to [enable GPUs](build-images/config_gpus.txt) if interested.
-I'd also like to refactor to build one image, or get logic from shared scripts to reduce redundancy, but this isn't a hill I need
-to die on right now! XD
-
 ### Deploy with Terraform
+
+TODO UPDATE EXAMPLE
 
 Once you have images, choose a directory under [examples](examples) to deploy from:
 
