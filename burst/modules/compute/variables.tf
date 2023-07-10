@@ -1,16 +1,9 @@
-# Copyright 2022 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+variable "munge_key" {
+    description = "A custom munge key"
+    type        = string
+    default     = ""
+    nullable    = true
+}
 
 variable "automatic_restart" {
   type        = bool
@@ -33,7 +26,7 @@ variable "compact_placement" {
 variable "family" {
     description = "The source X86 image family prefix to use"
     type        = string
-    default     = "flux-fw-compute-x86-64"
+    default     = "flux-fw-bursted-x86-64"
 }
 
 variable "gpu" {
@@ -45,11 +38,6 @@ variable "gpu" {
     default     = null
 }
 
-variable "login_node_specs" {
-    description = "A JSON encoded list of maps each with the keys: 'name_prefix', 'machin_arch', 'machine_type', and 'instances' which describe the login node instances to create"
-    type        = string
-}
-
 variable "machine_arch" {
     description = "The instruction set architecture, usually x86_64, used by the compute node"
     type        = string
@@ -57,11 +45,6 @@ variable "machine_arch" {
 
 variable "machine_type" {
     description = "The Compute Engine machine type to be used for the compute node"
-    type        = string
-}
-
-variable "manager" {
-    description = "The hostname of the Flux cluster management node"
     type        = string
 }
 

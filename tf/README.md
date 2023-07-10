@@ -1,5 +1,7 @@
 # Flux Framework Cluster Module
 
+**IMPORTANT** this set of modules is not in use - we are opting to use a simpler setup with one node (under burst).
+
 This module handles the deployment of Flux as the native resource manager on a cluster of GCP compute instances.
 It is a variant of [these original recipes](https://github.com/GoogleCloudPlatform/scientific-computing-examples/tree/main/fluxfw-gcp/tf)
 We have maintained the same [LICENSE](../LICENSE) and headers.

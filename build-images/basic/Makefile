@@ -5,10 +5,6 @@ all: compute login manager
 compute: 
 	$(MAKE) -C compute all
 
-.PHONY: arm
-arm: 
-	$(MAKE) -C arm all
-
 .PHONY: login
 login: 
 	$(MAKE) -C login all
