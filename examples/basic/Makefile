@@ -13,6 +13,11 @@ fmt:
 validate: 
 	terraform validate
 
+.PHONY: template
+template:
+	cp ./scripts/boot_script.sh ./boot_script_generated.sh
+	sed -i "s/NODELIST/${NODELIST}/g" ./boot_script_generated.sh
+	
 .PHONY: deploy
 deploy: 
 	export GOOGLE_PROJECT=$(gcloud config get-value core/project)
