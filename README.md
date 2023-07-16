@@ -1,7 +1,9 @@
 # Flux Terraform GCP
 
 Terraform module to create Google Cloud images for Flux Framework HashiCorp Packer and AWS CodeBuild.
-We are mirroring functionality from [GoogleCloudPlatform/scientific-computing-examples](https://github.com/GoogleCloudPlatform/scientific-computing-examples/tree/openmpi/fluxfw-gcp). Thank you Google, we love you!
+We are mirroring functionality from [GoogleCloudPlatform/scientific-computing-examples](https://github.com/GoogleCloudPlatform/scientific-computing-examples/tree/openmpi/fluxfw-gcp), however we have refactored the entire
+thing to only use one base image, and have all configuration done via a start boot script.
+Thank you Google, we love you!
 
 ## Usage
 
@@ -13,7 +15,6 @@ Create default application credentials (just once):
 $ gcloud auth application-default login
 ```
 this is for packer to find and use.
-
 
 ### Build Images with Packer
 
@@ -32,9 +33,9 @@ $ make
 
 ### Deploy with Terraform
 
-**Note** we are currently updating our images, and have not updated our examples yet.
-We are mostly using [burst](burst) for bursted use cases. We will update the examples
-when we return to working on the [tf](tf) images.
+You can build images under [build-images](build-images) and then use the modules
+provided in [burst](burst). An example is provided in [examples/basic](examples/basic)
+and you can see the [flux-burst-compute-engine](https://github.com/converged-computing/flux-burst-compute-engine).
 
 ## License
 
