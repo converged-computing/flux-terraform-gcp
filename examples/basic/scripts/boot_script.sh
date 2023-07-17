@@ -55,7 +55,7 @@ cat /etc/flux/imp/conf.d/imp.toml
 
 cat <<EOT >> /tmp/system.toml
 [exec]
-imp = "$fluxroot/local/libexec/flux/flux-imp"
+imp = "$fluxroot/libexec/flux/flux-imp"
 
 # Allow users other than the instance owner (guests) to connect to Flux
 # Optionally, root may be given "owner privileges" for convenience
