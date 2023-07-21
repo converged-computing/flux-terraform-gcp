@@ -1,8 +1,7 @@
-# Flux Framework + Usernetes on GCP
+# Flux Framework + K3s on GCP
 
 This deployment illustrates deploying a flux-framework cluster on GCP
-with usernetes installed. We use one single image base and configure via a bootscript.
-I am trying to follow the logic in [this example in docker-compose](https://github.com/rootless-containers/usernetes/blob/master/docker-compose.yml).
+with k3s (root needed) installed. We use one single image base and configure via a bootscript.
 
 # Usage
 
@@ -110,7 +109,7 @@ gcloud compute ssh gffw-compute-a-002 --zone us-central1-a
 gcloud compute ssh gffw-compute-a-003 --zone us-central1-a
 ```
 
-And below you can see doing the scp:
+And below you can see doing the scp to separate nodes if you need!
 
 ## Batch Testing
 
@@ -140,303 +139,139 @@ You can look at the script logs/ runtime logs like this if you need to debug.
 $ cat $HOME/<script_name>.out
 ```
 
-That's it. Enjoy!
+For example, here is a working run in `k3s_starter.out`
 
-## Developer
+<details>
 
-### AMIs
-
-The following AMIs have been used at some point in this project:
-
-  - `ami-0ff535566e7c13e8c`: current AMI, modified to have cgroups version 2 
-  - `ami-02eac56446a475861`: original AMI, early 2023 (March-May) without cgroups 2
-
-### Credentials
-
-The best practice approach for giving the instances ability to list images (and get the hostnames)
-is with an IAM role. However, we used a previous approach to add credentials (scoped) directly to
-the environment in the startscript. That looked like this:
-
-```
-Since we want to get hosts on the instance using the aws client, export your credentials to the environment
-for the instances:
-
-```bash
-export TF_VAR_aws_secret=$AWS_SECRET_ACCESS_KEY 
-export TF_VAR_aws_key=$AWS_ACCESS_KEY_ID 
-export TF_VAR_aws_session=$AWS_SESSION_TOKEN 
-```
-
-Thanks [Vsoch](https://github.com/vsoch)
-
-
-
-
-For the rest of this experiment we will work to setup each node. You can do the steps below one by one, or
-clone usernetes manually:
-
-```bash
-# Install usernetes on all nodes (fuse3 and wget are already installed)
-wget https://github.com/rootless-containers/usernetes/releases/download/v20230518.0/usernetes-x86_64.tbz
-tar xjvf usernetes-x86_64.tbz
-```
-
-Note that a few times I'd do the above, try to cd to ~/usernetes and it would tell me it wasn't there (and my entire home was gone). I think this is some issue with NFS. In these cases I tried again. Don't forget to fix the bug in install.sh noted in the section below, and then submit the install as a flux job.
-
-```bash
-flux submit -N 3 --watch ./batch.sh
-```
-
-In practice this didn't work, and I saw errors about services:
-
-```
-[WARNING] cpu controller might not be enabled, you need to configure /etc/systemd/system/user@.service.d , see https://rootlesscontaine.rs/getting-started/common/cgroup2/
-[WARNING] Kernel module x_tables not loaded
-[WARNING] Kernel module xt_MASQUERADE not loaded
-[WARNING] Kernel module xt_tcpudp not loaded
-```
-So I've been testing the manual approach, below.
-
-## Node gffw-compute-a-001
-
-I found to get this working I needed to login to the 001 node, run the steps at the top of [scripts/batch.sh](scripts/batch.sh)
-to download usernetes in HOME, and then before running anything, update the generation of the env file in `$HOME/usersnetes/install.sh`
-
-```diff
-- U7S_ROOTLESSKIT_PORTS=${publish}
-+ U7S_ROOTLESSKIT_PORTS="${publish}"
-```
-
-And then run the install.sh command from [scripts/batch.sh](scripts/batch.sh). Remember that we have an NFS
-filesystem so you only need to clone and generate certs once (the other nodes see the same HOME).
-And that generates to `/home/sochat1_llnl_gov/.config/usernetes/env`. While [debugging](#debugging), I 
-I wound up doing all the changes you see for the first 001 node in [scripts/batch.sh](scripts/batch.sh)
-but then when everything is running it should look like this:
+<summary>k3s-starter.out</summary>
 
 ```console
-[sochat1_llnl_gov@gffw-compute-a-001 ~]$ cd usernetes
-[sochat1_llnl_gov@gffw-compute-a-001 usernetes]$     /bin/bash ./install.sh --wait-init-certs --start=u7s-master-with-etcd.target --cidr=10.0.100.0/24 --publish=0.0.0.0:2379:2379/tcp --publish=0.0.0.0:6443:6443/tcp --cni=flannel --cri=crio
-[INFO] Rootless cgroup (v2) is supported
-[WARNING] Kernel module x_tables not loaded
-[WARNING] Kernel module xt_MASQUERADE not loaded
-[WARNING] Kernel module xt_tcpudp not loaded
-[INFO] Waiting for certs to be created.:
-OK
-[INFO] Base dir: /home/sochat1_llnl_gov/usernetes
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-master-with-etcd.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-rootlesskit.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-etcd.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-etcd.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-master.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-apiserver.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-controller-manager.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-scheduler.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-node.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kubelet-crio.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-proxy.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-flanneld.service
-[INFO] Starting u7s-master-with-etcd.target
-+ systemctl --user -T enable u7s-master-with-etcd.target
-+ systemctl --user -T start u7s-master-with-etcd.target
-Enqueued anchor job 307 u7s-master-with-etcd.target/start.
+I'm a worker, gffw-compute-a-003
+I'm a worker, gffw-compute-a-002
+I'm the leader, gffw-compute-a-001
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "Unauthorized",
+  "reason": "Unauthorized",
+  "code": 401
+}The K3S service is UP!
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "Unauthorized",
+  "reason": "Unauthorized",
+  "code": 401
+}The K3S service is UP!
+K3S_TOKEN=k3s_secret_token
+K3S_URL=https://gffw-compute-a-001:6443
+K3S_URL=https://gffw-compute-a-001:6443
+K3S_TOKEN=k3s_secret_token
+K3S_TOKEN=k3s_secret_token
+● k3s.service - Lightweight Kubernetes
+   Loaded: loaded (/etc/systemd/system/k3s.service; disabled; vendor preset: disabled)
+   Active: active (running) since Fri 2023-07-21 23:29:01 UTC; 12min ago
+     Docs: https://k3s.io
+ Main PID: 9273 (k3s-server)
+    Tasks: 150
+   Memory: 1.3G
+   CGroup: /system.slice/k3s.service
+           ├─ 9273 /usr/bin/k3s server
+           ├─ 9349 containerd 
+           ├─10226 /var/lib/rancher/k3s/data/163665c44bcc8e97514aeb518069c3c55e5ad6226d4ebf3c6d89cbd4057b6809/bin/containerd-shim-runc-v2 -namespace k8s.io -id 199b467d652f260d0fd1932dcf8f0ccd3f277a0ac1aa1343153661904664f9f4 -address /run/k3s/containerd/containerd.sock
+           ├─10310 /var/lib/rancher/k3s/data/163665c44bcc8e97514aeb518069c3c55e5ad6226d4ebf3c6d89cbd4057b6809/bin/containerd-shim-runc-v2 -namespace k8s.io -id da5eaf2036372743f16f05224f58b4d1e9652372622406404ed789aa64d25c8a -address /run/k3s/containerd/containerd.sock
+           ├─10347 /var/lib/rancher/k3s/data/163665c44bcc8e97514aeb518069c3c55e5ad6226d4ebf3c6d89cbd4057b6809/bin/containerd-shim-runc-v2 -namespace k8s.io -id e73548c3de6b18ecd629e5a12e76c81e825014265185c955fadd74a216862f22 -address /run/k3s/containerd/containerd.sock
+           ├─11487 /var/lib/rancher/k3s/data/163665c44bcc8e97514aeb518069c3c55e5ad6226d4ebf3c6d89cbd4057b6809/bin/containerd-shim-runc-v2 -namespace k8s.io -id e5e0721f689b03e3efa4a12e96f9c1802fcda9d17580d55a9e01c15191768619 -address /run/k3s/containerd/containerd.sock
+           └─11585 /var/lib/rancher/k3s/data/163665c44bcc8e97514aeb518069c3c55e5ad6226d4ebf3c6d89cbd4057b6809/bin/containerd-shim-runc-v2 -namespace k8s.io -id 34b9e8d763276fdeeff07eb4c559f195826176414c88770429501a36352e99a3 -address /run/k3s/containerd/containerd.sock
 
-real    0m0.005s
-user    0m0.001s
-sys     0m0.003s
-+ systemctl --user --all --no-pager list-units 'u7s-*'
-UNIT                                LOAD   ACTIVE SUB     DESCRIPTION                                                       
-u7s-etcd.service                    loaded active running Usernetes etcd service                                            
-u7s-flanneld.service                loaded active running Usernetes flanneld service                                        
-u7s-kube-apiserver.service          loaded active running Usernetes kube-apiserver service                                  
-u7s-kube-controller-manager.service loaded active running Usernetes kube-controller-manager service                         
-u7s-kube-proxy.service              loaded active running Usernetes kube-proxy service                                      
-u7s-kube-scheduler.service          loaded active running Usernetes kube-scheduler service                                  
-u7s-kubelet-crio.service            loaded active running Usernetes kubelet service (crio)                                  
-u7s-rootlesskit.service             loaded active running Usernetes RootlessKit service (crio)                              
-u7s-etcd.target                     loaded active active  Usernetes target for etcd                                         
-u7s-master-with-etcd.target         loaded active active  Usernetes target for Kubernetes master components (including etcd)
-u7s-master.target                   loaded active active  Usernetes target for Kubernetes master components                 
-u7s-node.target                     loaded active active  Usernetes target for Kubernetes node components (crio)            
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.074251    9273 resource_quota_monitor.go:218] QuotaMonitor created object count evaluator for tlsstores.traefik.containo.us
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.074271    9273 resource_quota_monitor.go:218] QuotaMonitor created object count evaluator for traefikservices.traefik.containo.us
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.074285    9273 resource_quota_monitor.go:218] QuotaMonitor created object count evaluator for ingressroutetcps.traefik.containo.us
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.074300    9273 resource_quota_monitor.go:218] QuotaMonitor created object count evaluator for ingressroutes.traefik.containo.us
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.074358    9273 shared_informer.go:270] Waiting for caches to sync for resource quota
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.175371    9273 shared_informer.go:277] Caches are synced for resource quota
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.494540    9273 shared_informer.go:270] Waiting for caches to sync for garbage collector
+Jul 21 23:29:46 gffw-compute-a-001 k3s[9273]: I0721 23:29:46.494588    9273 shared_informer.go:277] Caches are synced for garbage collector
+Jul 21 23:33:57 gffw-compute-a-001 k3s[9273]: time="2023-07-21T23:33:57Z" level=info msg="COMPACT revision 0 has already been compacted"
+Jul 21 23:38:57 gffw-compute-a-001 k3s[9273]: time="2023-07-21T23:38:57Z" level=info msg="COMPACT revision 0 has already been compacted"
+● k3s-agent.service - Lightweight Kubernetes
+   Loaded: loaded (/etc/systemd/system/k3s-agent.service; disabled; vendor preset: disabled)
+   Active: active (running) since Fri 2023-07-21 23:41:18 UTC; 255ms ago
+     Docs: https://k3s.io
+  Process: 8532 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+  Process: 8531 ExecStartPre=/sbin/modprobe br_netfilter (code=exited, status=0/SUCCESS)
+  Process: 8529 ExecStartPre=/bin/sh -xc ! /usr/bin/systemctl is-enabled --quiet nm-cloud-setup.service (code=exited, status=0/SUCCESS)
+ Main PID: 8533 (k3s-agent)
+    Tasks: 31
+   Memory: 228.9M
+   CGroup: /system.slice/k3s-agent.service
+           ├─8533 /usr/bin/k3s agent
+           └─8556 containerd 
 
-LOAD   = Reflects whether the unit definition was properly loaded.
-ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
-SUB    = The low-level unit activation state, values depend on unit type.
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: I0721 23:41:18.471753    8533 status_manager.go:176] "Starting to sync pod status with apiserver"
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: I0721 23:41:18.471773    8533 kubelet.go:2113] "Starting kubelet main sync loop"
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: E0721 23:41:18.471817    8533 kubelet.go:2137] "Skipping pod synchronization" err="PLEG is not healthy: pleg has yet to be successful"
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: I0721 23:41:18.472513    8533 kuberuntime_manager.go:1114] "Updating runtime config through cri with podcidr" CIDR="10.42.2.0/24"
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: I0721 23:41:18.472844    8533 kubelet_network.go:61] "Updating Pod CIDR" originalPodCIDR="" newPodCIDR="10.42.2.0/24"
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: time="2023-07-21T23:41:18Z" level=info msg="Starting the netpol controller version , built on , go1.19.9"
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: time="2023-07-21T23:41:18Z" level=info msg="k3s agent is up and running"
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: I0721 23:41:18.488206    8533 network_policy_controller.go:163] Starting network policy controller
+Jul 21 23:41:18 gffw-compute-a-002 systemd[1]: Started Lightweight Kubernetes.
+Jul 21 23:41:18 gffw-compute-a-002 k3s[8533]: I0721 23:41:18.526276    8533 network_policy_controller.go:175] Starting network policy controller full sync goroutine
+● k3s-agent.service - Lightweight Kubernetes
+   Loaded: loaded (/etc/systemd/system/k3s-agent.service; disabled; vendor preset: disabled)
+   Active: active (running) since Fri 2023-07-21 23:41:18 UTC; 364ms ago
+     Docs: https://k3s.io
+  Process: 8643 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+  Process: 8642 ExecStartPre=/sbin/modprobe br_netfilter (code=exited, status=0/SUCCESS)
+  Process: 8640 ExecStartPre=/bin/sh -xc ! /usr/bin/systemctl is-enabled --quiet nm-cloud-setup.service (code=exited, status=0/SUCCESS)
+ Main PID: 8644 (k3s-agent)
+    Tasks: 32
+   Memory: 230.1M
+   CGroup: /system.slice/k3s-agent.service
+           ├─8644 /usr/bin/k3s agent
+           └─8667 containerd 
 
-12 loaded units listed.
-To show all installed unit files use 'systemctl list-unit-files'.
-+ set +x
-[INFO] Installing CoreDNS
-+ sleep 3
-+ kubectl get nodes -o wide
-NAME                 STATUS   ROLES    AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                           KERNEL-VERSION                       CONTAINER-RUNTIME
-gffw-compute-a-001   Ready    <none>   13m   v1.27.2   10.0.100.100   <none>        Rocky Linux 8.8 (Green Obsidian)   4.18.0-477.15.1.el8_8.cloud.x86_64   cri-o://1.27.0
-+ kubectl apply -f /home/sochat1_llnl_gov/usernetes/manifests/coredns.yaml
-serviceaccount/coredns unchanged
-clusterrole.rbac.authorization.k8s.io/system:coredns unchanged
-clusterrolebinding.rbac.authorization.k8s.io/system:coredns unchanged
-configmap/coredns unchanged
-deployment.apps/coredns unchanged
-service/kube-dns unchanged
-+ set +x
-[INFO] Waiting for CoreDNS pods to be available
-+ sleep 3
-+ kubectl -n kube-system wait --for=condition=ready pod -l k8s-app=kube-dns
-pod/coredns-8557665db-5rxkp condition met
-pod/coredns-8557665db-fnnjj condition met
-+ kubectl get pods -A -o wide
-NAMESPACE     NAME                      READY   STATUS    RESTARTS   AGE   IP          NODE                 NOMINATED NODE   READINESS GATES
-kube-system   coredns-8557665db-5rxkp   1/1     Running   0          49m   10.5.15.3   gffw-compute-a-001   <none>           <none>
-kube-system   coredns-8557665db-fnnjj   1/1     Running   0          49m   10.5.15.2   gffw-compute-a-001   <none>           <none>
-+ set +x
-[INFO] Installation complete.
-[INFO] Hint: `sudo loginctl enable-linger` to start user services automatically on the system start up.
-[INFO] Hint: export KUBECONFIG=/home/sochat1_llnl_gov/.config/usernetes/master/admin-localhost.kubeconfig
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: I0721 23:41:18.438810    8644 kubelet_network.go:61] "Updating Pod CIDR" originalPodCIDR="" newPodCIDR="10.42.1.0/24"
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: I0721 23:41:18.446927    8644 kubelet_network_linux.go:63] "Initialized iptables rules." protocol=IPv6
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: I0721 23:41:18.446944    8644 status_manager.go:176] "Starting to sync pod status with apiserver"
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: I0721 23:41:18.446960    8644 kubelet.go:2113] "Starting kubelet main sync loop"
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: E0721 23:41:18.446994    8644 kubelet.go:2137] "Skipping pod synchronization" err="PLEG is not healthy: pleg has yet to be successful"
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: time="2023-07-21T23:41:18Z" level=info msg="Starting the netpol controller version , built on , go1.19.9"
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: time="2023-07-21T23:41:18Z" level=info msg="k3s agent is up and running"
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: I0721 23:41:18.453679    8644 network_policy_controller.go:163] Starting network policy controller
+Jul 21 23:41:18 gffw-compute-a-003 systemd[1]: Started Lightweight Kubernetes.
+Jul 21 23:41:18 gffw-compute-a-003 k3s[8644]: I0721 23:41:18.549870    8644 network_policy_controller.go:175] Starting network policy controller full sync goroutine
+NAME                 STATUS   ROLES                  AGE   VERSION
+gffw-compute-a-001   Ready    control-plane,master   12m   v1.26.5+k3s1
+gffw-compute-a-003   Ready    <none>                 25s   v1.26.5+k3s1
+gffw-compute-a-002   Ready    <none>                 25s   v1.26.5+k3s1
+No resources found in default namespace.
+namespace/yelb created
+service/redis-server created
+service/yelb-db created
+service/yelb-appserver created
+service/yelb-ui created
+deployment.apps/yelb-ui created
+deployment.apps/redis-server created
+deployment.apps/yelb-db created
+deployment.apps/yelb-appserver created
+NAME                              READY   STATUS              RESTARTS   AGE   IP       NODE                 NOMINATED NODE   READINESS GATES
+yelb-ui-79bb656bc6-zjm54          0/1     ContainerCreating   0          0s    <none>   gffw-compute-a-002   <none>           <none>
+redis-server-76d7b647dd-hkt2g     0/1     ContainerCreating   0          0s    <none>   gffw-compute-a-003   <none>           <none>
+yelb-db-5dfdd5d44f-8l6kl          0/1     ContainerCreating   0          0s    <none>   gffw-compute-a-003   <none>           <none>
+yelb-appserver-56d6d6685b-khvbg   0/1     ContainerCreating   0          0s    <none>   gffw-compute-a-002   <none>           <none>
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+redis-server     ClusterIP   10.43.193.225   <none>        6379/TCP       1s
+yelb-db          ClusterIP   10.43.173.144   <none>        5432/TCP       1s
+yelb-appserver   ClusterIP   10.43.18.113    <none>        4567/TCP       1s
+yelb-ui          NodePort    10.43.76.75     <none>        80:30001/TCP   1s
 ```
 
-Then I did the last step (and added to my bash profile):
-
-```console
-echo "export KUBECONFIG=/home/sochat1_llnl_gov/.config/usernetes/master/admin-localhost.kubeconfig" >> ~/.bashrc
-echo "export PATH=~/usernetes/bin:$PATH" >> ~/.bashrc
-export KUBECONFIG=/home/sochat1_llnl_gov/.config/usernetes/master/admin-localhost.kubeconfig
-```
-
-And you can get the control plane node now:
-
-```bash
-$ kubectl get nodes
-```
-```console
-$ kubectl get nodes
-NAME                 STATUS   ROLES    AGE   VERSION
-gffw-compute-a-001   Ready    <none>   17m   v1.27.2
-```
-
-## Node gffw-compute-a-002
-
-Remember we have NFS, so the files / changes to bashrc are going to be present here! So we can run
-the install.sh step for 002 (see again batch.sh for this node (this is the crio node)):
-
-```bash
-$ /bin/bash ./install.sh --wait-init-certs --start=u7s-node.target --cidr=10.0.101.0/24 --publish=0.0.0.0:10250:10250/tcp --publish=0.0.0.0:8472:8472/udp --cni=flannel --cri=crio
-```
-```console
-[INFO] Rootless cgroup (v2) is supported
-[WARNING] Kernel module x_tables not loaded
-[WARNING] Kernel module xt_MASQUERADE not loaded
-[WARNING] Kernel module xt_tcpudp not loaded
-[INFO] Waiting for certs to be created.:
-OK
-[INFO] Base dir: /home/sochat1_llnl_gov/usernetes
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-master-with-etcd.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-rootlesskit.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-etcd.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-etcd.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-master.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-apiserver.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-controller-manager.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-scheduler.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-node.target
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kubelet-crio.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-kube-proxy.service
-[INFO] Installing /home/sochat1_llnl_gov/.config/systemd/user/u7s-flanneld.service
-[INFO] Starting u7s-node.target
-+ systemctl --user -T enable u7s-node.target
-Created symlink /home/sochat1_llnl_gov/.config/systemd/user/u7s.target.wants/u7s-node.target → /home/sochat1_llnl_gov/.config/systemd/user/u7s-node.target.
-+ systemctl --user -T start u7s-node.target
-Enqueued anchor job 10 u7s-node.target/start.
-Enqueued auxiliary job 21 u7s-rootlesskit.service/start.
-Enqueued auxiliary job 11 u7s-kube-proxy.service/start.
-Enqueued auxiliary job 22 u7s-flanneld.service/start.
-Enqueued auxiliary job 13 u7s-kubelet-crio.service/start.
-
-real    0m1.589s
-user    0m0.003s
-sys     0m0.002s
-+ systemctl --user --all --no-pager list-units 'u7s-*'
-UNIT                                LOAD   ACTIVE   SUB     DESCRIPTION                                                       
-u7s-etcd.service                    loaded inactive dead    Usernetes etcd service                                            
-u7s-flanneld.service                loaded active   running Usernetes flanneld service                                        
-u7s-kube-apiserver.service          loaded inactive dead    Usernetes kube-apiserver service                                  
-u7s-kube-controller-manager.service loaded inactive dead    Usernetes kube-controller-manager service                         
-u7s-kube-proxy.service              loaded active   running Usernetes kube-proxy service                                      
-u7s-kube-scheduler.service          loaded inactive dead    Usernetes kube-scheduler service                                  
-u7s-kubelet-crio.service            loaded active   running Usernetes kubelet service (crio)                                  
-u7s-rootlesskit.service             loaded active   running Usernetes RootlessKit service (crio)                              
-u7s-etcd.target                     loaded inactive dead    Usernetes target for etcd                                         
-u7s-master-with-etcd.target         loaded inactive dead    Usernetes target for Kubernetes master components (including etcd)
-u7s-master.target                   loaded inactive dead    Usernetes target for Kubernetes master components                 
-u7s-node.target                     loaded active   active  Usernetes target for Kubernetes node components (crio)            
-
-LOAD   = Reflects whether the unit definition was properly loaded.
-ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
-SUB    = The low-level unit activation state, values depend on unit type.
-
-12 loaded units listed.
-To show all installed unit files use 'systemctl list-unit-files'.
-+ set +x
-[INFO] Installation complete.
-[INFO] Hint: `sudo loginctl enable-linger` to start user services automatically on the system start up.
-```
-
-I also ran the last suggested command.
-
-## Node gffw-compute-a-003
-
-Finally the last node, same deal.
-
-## Cleanup
-
-When you are done, exit and:
-
-```bash
-$ make destroy
-```
-
-## Next Steps
-
-We need to better understand this multi-node setup, and how the components are supposed to be working together
-(and why they are not). The first bug to address is the fact that we are expecting docker-compose binds, and instead
-of copying an actual node directory to ./node we should be able to specify it somewhere.
-
-## Advanced
-
-### Debugging
-
-If you get an error on starting usernetes, likely your gid/uid doesn't correspond
-with the user account you logged in with. Try running this:
-
-```bash
-source $HOME/.config/usernetes/env
-$HOME/usernetes/boot/rootlesskit.sh $HOME/usernetes/boot/containerd.sh
-```
-And if you see this:
-
-```console
-[rootlesskit:parent] error: failed to setup UID/GID map: failed to compute uid/gid map: No subuid ranges found for user 2121336887
-```
-
-Try `gcloud auth login` with your correct id first. It needs to have a range in:
-
-```console
-cat /etc/subuid
-cat /etc/subgid
-```
-
-And you can use this same strategy to debug - look for the service files in
-`$HOME/.config/systemd/user/` and then source the environment and manually run
-the `ExecStart` to see the actual error. As an example, when I was debugging it 
-helped to check individual services (that should be running):
-
-```bash
-$ systemctl --user --all --no-pager list-units 'u7s-*'
-```
-
-And then, for example, to see the filepath for a specific service:
-
-```bash
-systemctl --user status 'u7s-flanneld.service'
-cat /home/sochat1_llnl_gov/.config/systemd/user/u7s-flanneld.service
-```
+</details>
+That's it. Enjoy! We hopefully will be able to continue developing this (with rootless)
+when we better understand the underlying issues with usernetes (and can translate them over here).
