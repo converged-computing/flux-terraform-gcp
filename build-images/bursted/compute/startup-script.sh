@@ -51,7 +51,11 @@ dnf install -y \
     openmpi.x86_64 \
     openmpi-devel.x86_64 \
     gcsfuse \
+    syslog \
     jq
+
+# Ensure we have syslog
+dnf -q rq --groupmember rsyslog
 
 # IMPORTANT: the flux user/group must match!
 # useradd -M -r -s /bin/false -c "flux-framework identity" flux
