@@ -15,6 +15,13 @@ nodename=$(hostname)
 # Run from $HOME/usernetes
 cd ~/usernetes
 
+systemctl --user daemon-reload
+uid=$(basename $XDG_RUNTIME_DIR)
+
+# NOTE this shouldn't need to be done but it's a hack for now
+# when I don't do this the containerd sock does not write
+sudo chown -R $USER /sys/fs/cgroup/user.slice/user-${uid}.slice
+
 # Run this on the main login node - since it's shared we only need 
 # to generate the certs once.
 if [[ "$nodename" == *"001"* ]]; then
@@ -26,15 +33,19 @@ if [[ "$nodename" == *"001"* ]]; then
     # "$XDG_CONFIG_HOME/usernetes/node/kube-proxy.kubeconfig", so we are going to arbitrarily make it
     # I did a diff of the two kube-proxy.kubectl and they are the same
     cp -R ~/.config/usernetes/nodes.$node_crio ~/.config/usernetes/node
+    
+    # This is mentioned in the kube-config.yaml and does not exist
+    mkdir -p ~/.local/share/usernetes/kubelet-plugins-exec
 
     # 2379/tcp: etcd, 6443/tcp: kube-apiserver
     # This first install will timeout because configs are missing, but we need to generate the first ones!
     /bin/bash ./install.sh --wait-init-certs --start=u7s-master-with-etcd.target --cidr=10.0.100.0/24 --publish=0.0.0.0:2379:2379/tcp --publish=0.0.0.0:6443:6443/tcp --cni=flannel --cri=
 
     # This didn't work the first time
+    # Debugging examples
     # systemctl --user start 'u7s-kubelet-crio.service'
     # systemctl --user start 'u7s-kub-proxy.service'
-    systemctl --user --all --no-pager list-units 'u7s-*'
+    # systemctl --user --all --no-pager list-units 'u7s-*'
 
     # This is the control plane, so we interact with kubectl here
     echo "KUBECONFIG=$HOME/.config/usernetes/master/admin-localhost.kubeconfig" >> ~/.bashrc

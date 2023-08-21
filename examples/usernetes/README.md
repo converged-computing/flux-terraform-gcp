@@ -62,7 +62,7 @@ that mysteriously need it.
 export GOOGLE_PROJECT=$(gcloud config get-value core/project)
 ```
 
-You'll want to inspect basic.tfvars and change for your use case. Then:
+You'll want to inspect basic.tfvars and change for your use case (or keep as is for a small debugging cluster). Then:
 
 ```bash
 $ make
@@ -72,6 +72,10 @@ And inspect the [Makefile](Makefile) to see the terraform commands we apply
 to init, format, validate, and deploy. The deploy will setup networking and all the instances! Note that
 you can change any of the `-var` values to be appropriate for your environment.
 Verify that the cluster is up. You can shell into any compute node.
+
+<details>
+
+<summary>Extra Debugging Details</summary>
 
 ```bash
 gcloud compute ssh gffw-compute-a-001 --zone us-central1-a
@@ -85,46 +89,110 @@ sudo journalctl -u google-startup-scripts.service
 
 Note that I logged into all three nodes to ensure the home was created (I do it backwards so I finish up on 001):
 
-```bash
-gcloud compute ssh gffw-compute-a-003 --zone us-central1-a
-gcloud compute ssh gffw-compute-a-002 --zone us-central1-a
-gcloud compute ssh gffw-compute-a-001 --zone us-central1-a
-```
+</details>
 
-I also needed to fix the uid/gid because Google OS login does it wrong (on every node)!
-You likely need to look at this file first to see which username to replace and what username
-you are actually logged in with.
+I would give a few minutes for the boot script to run. next we are going to init the NFS mount
+by running ssh as our user, and changing variables in `/etc/sub(u|g)id`
 
 ```bash
-sudo sed -i "s/sochat1_llnlgov/sochat1_llnl_gov/g" /etc/subuid
-sudo sed -i "s/sochat1_llnlgov/sochat1_llnl_gov/g" /etc/subgid
+for i in 1 2 3; do
+  instance=gffw-compute-a-00${i}
+  login_user=$(gcloud compute ssh $instance --zone us-central1-a -- whoami)
+done
+echo "Found login user ${login_user}"
 ```
+
+Next change the uid/gid this might vary for you - change the usernames based on the users you have)
+
+```bash
+for i in 1 2 3; do
+  instance=gffw-compute-a-00${i}
+  gcloud compute ssh $instance --zone us-central1-a -- sudo sed -i "s/sochat1_llnlgov/sochat1_llnl_gov/g" /etc/subuid
+  gcloud compute ssh $instance --zone us-central1-a -- sudo sed -i "s/sochat1_llnlgov/sochat1_llnl_gov/g" /etc/subgid
+done
+```
+
+One sanity check:
+
+```bash
+$ gcloud compute ssh $instance --zone us-central1-a -- cat /etc/subgid
+$ gcloud compute ssh $instance --zone us-central1-a -- cat /etc/subuid
+```
+
+<details> 
+
+<summary> Example interaction with Flux </summary>
 
 I'm hoping that's an issue we only see here. And then you should be able to interact with Flux!
 
 ```bash
+$ gcloud compute ssh $instance --zone us-central1-a -- flux resource list
+```
+```console
 $ flux resource list
      STATE NNODES   NCORES NODELIST
       free      3       12 gffw-compute-a-[001-003]
  allocated      0        0 
       down      0        0 
 ```
+
+Here is an example of how to run a hostname job (I ran this ssh'd in)
 ```bash
 $ flux run --cwd /tmp -N 2 hostname
 gffw-compute-a-001
 gffw-compute-a-002
 ```
 
-For the rest of this experiment we will work to setup each node. You can do the steps below one by one, or
-clone usernetes manually:
+</details>
+
+For the rest of this experiment we will work to setup each node. We will do this for one node, and it should
+persist to the others. Note that we are using a custom build from researchapps with a few bug fixes/extra
+verbosity. We will copy all scripts first. Change the below for your username
 
 ```bash
-# Install usernetes on all nodes (fuse3 and wget are already installed)
-wget https://github.com/rootless-containers/usernetes/releases/download/v20230518.0/usernetes-x86_64.tbz
-tar xjvf usernetes-x86_64.tbz
+$ gcloud compute ssh gffw-compute-a-001 --zone us-central1-a -- mkdir -p /home/sochat1_llnl_gov/scripts
+$ gcloud compute scp ./scripts --recurse gffw-compute-a-001:/home/sochat1_llnl_gov --zone=us-central1-a
 ```
 
-Note that a few times I'd do the above, try to cd to ~/usernetes and it would tell me it wasn't there (and my entire home was gone). I think this is some issue with NFS. In these cases I tried again. Don't forget to fix the bug in install.sh noted in the section below, and then submit the install as a flux job.
+This should now install usernetes (get the .tbz and extract). The filesystem is shared so we do this once.
+
+```bash
+gcloud compute ssh gffw-compute-a-001 --zone us-central1-a -- bash ./scripts/install_usernetes.sh
+```
+
+Now ensure we have cgroups2 enabled for each node:
+
+```bash
+for i in 1 2 3; do
+  gcloud compute ssh gffw-compute-a-00${i} --zone us-central1-a -- bash ./scripts/delegate.sh
+done
+```
+
+At the end of each you should see:
+
+```console
+cpuset cpu io memory pids
+```
+
+Update the install.sh (there is a quoting bug)
+
+```bash
+$ gcloud compute scp ./scripts/install.sh gffw-compute-a-001:/home/sochat1_llnl_gov/usernetes/install.sh --zone=us-central1-a
+```
+
+Now try running the install script for each. I did this in separate terminals so I could watch all of them.
+
+```bash
+gcloud compute ssh gffw-compute-a-001 --zone us-central1-a -- bash ./scripts/001-control-plane.sh
+gcloud compute ssh gffw-compute-a-002 --zone us-central1-a -- bash ./scripts/002-crio.sh
+gcloud compute ssh gffw-compute-a-003 --zone us-central1-a -- bash ./scripts/003-containerd.sh
+```
+
+The corresponding logic for the above is in [scripts/batch.sh](scripts/batch.sh). We would eventually want to start this with flux.
+
+### Manual Testing
+
+Note that a few times I'd extract usernetes, and then try to cd to ~/usernetes and it would tell me it wasn't there (and my entire home was gone). I think this is some issue with NFS. In these cases I tried again. Don't forget to fix the bug in install.sh noted in the section below, and then submit the install as a flux job.
 
 ```bash
 flux submit -N 3 --watch ./batch.sh

@@ -64,7 +64,7 @@ source "googlecompute" "flux-bursted" {
   machine_type            = var.machine_type
   disk_size               = 256
   subnetwork              = var.subnetwork
-  tags                    = ["packer", "flux", "login", "${var.machine_architecture}"]
+  tags                    = ["packer", "flux", "bursted", "${var.machine_architecture}"]
   startup_script_file     = "startup-script.sh"
   ssh_username            = "rocky"
   enable_secure_boot      = var.enable_secure_boot
