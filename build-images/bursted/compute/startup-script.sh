@@ -18,6 +18,7 @@ dnf config-manager --set-enabled powertools
 dnf install -y epel-release
 
 dnf install -y \
+    cmake \
     munge \
     munge-devel \
     hwloc \
@@ -39,7 +40,7 @@ dnf install -y \
     boost-devel \
     libedit-devel \
     nfs-utils \
-    python36-devel \
+    python3-devel \
     python3-cffi \
     python3-yaml \
     python3-jsonschema \
@@ -69,10 +70,10 @@ grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
 cd /usr/share
 
 # These versions are chosen to match the demo container
-git clone -b v0.49.0 https://github.com/flux-framework/flux-core.git
-git clone -b v0.27.0 https://github.com/flux-framework/flux-sched.git
-git clone -b v0.7.0 https://github.com/flux-framework/flux-security.git
-git clone -b v0.3.0 https://github.com/flux-framework/flux-pmix.git
+git clone https://github.com/flux-framework/flux-core.git
+git clone -b v0.28.0 https://github.com/flux-framework/flux-sched.git
+git clone https://github.com/flux-framework/flux-security.git
+git clone https://github.com/flux-framework/flux-pmix.git
 
 cd /usr/share/flux-security
 
@@ -93,7 +94,6 @@ make -j 8
 make install
 
 cd /usr/share/flux-sched
-
 ./autogen.sh
 ./configure --prefix=/usr --sysconfdir=/etc
 

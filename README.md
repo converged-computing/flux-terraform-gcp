@@ -14,6 +14,7 @@ Create default application credentials (just once):
 ```bash
 $ gcloud auth application-default login
 ```
+
 this is for packer to find and use.
 
 ### Build Images with Packer

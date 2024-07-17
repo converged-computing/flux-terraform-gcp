@@ -29,9 +29,10 @@ variable "project_id" {
   default = "llnl-flux"
 }
 
+# gcloud compute images describe-from-family rocky-linux-8-optimized-gcp --project=rocky-linux-cloud
 variable "source_image" {
   type    = string
-  default = "rocky-linux-8-optimized-gcp-v20220719"
+  default = "rocky-linux-8-optimized-gcp-v20240709"
 }
 
 variable "source_image_project_id" {
