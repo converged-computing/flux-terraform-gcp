@@ -94,6 +94,7 @@ make -j 8
 make install
 
 cd /usr/share/flux-sched
+./autogen.sh
 ./configure --prefix=/usr --sysconfdir=/etc
 
 make
@@ -105,12 +106,12 @@ git clone https://github.com/openpmix/prrte.git /opt/prrte
 cd /opt/openpmix
 git checkout fefaed568f33bf86f28afb6e45237f1ec5e4de93
 ./autogen.pl
-./configure --prefix=/usr --disable-static && sudo make -j 4 install
+./configure --prefix=/usr --disable-static && make -j 4 install
 ldconfig 
 cd /opt/prrte
 git checkout 477894f4720d822b15cab56eee7665107832921c
 ./autogen.pl
-./configure --prefix=/usr && sudo make -j 4 install
+./configure --prefix=/usr && make -j 4 install
 
 cd /usr/share/flux-pmix
 
