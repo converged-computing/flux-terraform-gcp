@@ -145,6 +145,15 @@ echo "/usr/etc/flux/security *(rw,no_subtree_check,no_root_squash)" >> /etc/expo
 echo "/usr/etc/flux/system *(rw,no_subtree_check,no_root_squash)" >> /etc/exports
 echo "/etc/munge *(rw,no_subtree_check,no_root_squash)" >> /etc/exports
 
+# Enable cpu, cpuset and io delegation
+# https://rootlesscontaine.rs/getting-started/common/cgroup2/#enabling-cpu-cpuset-and-io-delegation
+mkdir -p /etc/systemd/system/user@.service.d
+cat <<EOF | tee /etc/systemd/system/user@.service.d/delegate.conf
+[Service]
+Delegate=cpu cpuset io memory pids
+EOF
+systemctl daemon-reload
+
 # Generate munge key. For a bursted cluster, this will need to be replaced
 /usr/sbin/create-munge-key
 systemctl enable nfs-server
